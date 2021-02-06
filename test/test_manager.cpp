@@ -1,6 +1,109 @@
 #include <midimanager.h>
 #include <unity.h>
 
+
+void test_static_linked_list_push() {
+  StaticLinkedList<size_t, 3> list;
+  TEST_ASSERT_NULL(list.cur_);
+  TEST_ASSERT_TRUE(list.isEmpty());
+  TEST_ASSERT_NULL(list.tail_->next);
+  Node<size_t>* n0 = list.push(1);
+  TEST_ASSERT_EQUAL(list.head_, list.cur_);
+  TEST_ASSERT_EQUAL(list.cur_, n0);
+  TEST_ASSERT_EQUAL(1, n0->data);
+  TEST_ASSERT_FALSE(list.isEmpty());
+  TEST_ASSERT_NULL(list.tail_->next);
+  Node<size_t>* n1 = list.push(2);
+  TEST_ASSERT_EQUAL(list.cur_, n1);
+  TEST_ASSERT_EQUAL(2, n1->data);
+  TEST_ASSERT_FALSE(list.isEmpty());
+  TEST_ASSERT_NULL(list.tail_->next);
+  Node<size_t>* n2 = list.push(3);
+  TEST_ASSERT_EQUAL(list.cur_, n2);
+  TEST_ASSERT_EQUAL(3, n2->data);
+  TEST_ASSERT_FALSE(list.isEmpty());
+  TEST_ASSERT_NULL(list.tail_->next);
+  // now we should steal the first element
+  Node<size_t>* n3 = list.push(4);
+  TEST_ASSERT_EQUAL(list.cur_, n3);
+  TEST_ASSERT_EQUAL(4, n3->data);
+  TEST_ASSERT_FALSE(list.isEmpty());
+  TEST_ASSERT_NOT_EQUAL(1, list.head_->data);
+  TEST_ASSERT_EQUAL(2, list.head_->data);
+  TEST_ASSERT_NULL(list.tail_->next);
+
+  for (size_t i = 0; i < 16; i++) {
+    list.push(i);
+  }
+  TEST_ASSERT_EQUAL(15, list.cur_->data);
+  TEST_ASSERT_NULL(list.tail_->next);
+}
+
+void test_static_linked_list_remove() {
+  StaticLinkedList<size_t, 3> list;
+  Node<size_t>* n;
+  // remove element when empty
+  list.remove(list.head_);
+  TEST_ASSERT_TRUE(list.isEmpty());
+  TEST_ASSERT_NULL(list.tail_->next);
+
+  // remove nonsense item
+  list.remove(nullptr);
+  TEST_ASSERT_TRUE(list.isEmpty());
+  TEST_ASSERT_NULL(list.tail_->next);
+
+  // remove element when one item
+  n = list.push(1);
+  list.remove(n);
+  TEST_ASSERT_TRUE(list.isEmpty());
+  TEST_ASSERT_NULL(list.tail_->next);
+
+  // remove first item when multiple items
+  list.clear();
+  n = list.push(1);
+  list.push(2);
+  list.remove(n);
+  TEST_ASSERT_FALSE(list.isEmpty());
+  TEST_ASSERT_EQUAL(2, list.cur_->data);
+  TEST_ASSERT_EQUAL(2, list.head_->data);
+  TEST_ASSERT_NULL(list.tail_->next);
+
+  // remove item from the middle
+  list.clear();
+  list.push(1);
+  n = list.push(2);
+  list.push(3);
+  list.remove(n);
+  TEST_ASSERT_FALSE(list.isEmpty());
+  TEST_ASSERT_EQUAL(3, list.cur_->data);
+  TEST_ASSERT_EQUAL(1, list.head_->data);
+  TEST_ASSERT_EQUAL(3, list.head_->next->data);
+  TEST_ASSERT_NULL(list.tail_->next);
+
+  // // remove cursor with multiple items
+  // list.clear();
+  // list.push(1);
+  // list.push(2);
+  // n = list.push(3);
+  // list.remove(n);
+  // TEST_ASSERT_FALSE(list.isEmpty());
+  // TEST_ASSERT_EQUAL(2, list.cur_->data);
+  // TEST_ASSERT_EQUAL(1, list.head_->data);
+  // TEST_ASSERT_EQUAL(2, list.head_->next->data);
+
+  // // remove head when cursor is tail
+  // list.clear();
+  // n = list.push(1);
+  // list.push(2);
+  // list.push(3);
+  // list.remove(n);
+  // TEST_ASSERT_FALSE(list.isEmpty());
+  // TEST_ASSERT_EQUAL(3, list.cur_->data);
+  // TEST_ASSERT_EQUAL(2, list.head_->data);
+
+  // // TODO: test a lot of ads and removes for segfaults 
+}
+
 void test_ignored_channels() {
   MidiManager<16, 1> m = MidiManager<16, 1>(0);
   m.handle(1, 50, 127);
@@ -26,8 +129,10 @@ void test_one_voice() {
 
 void process() {
     UNITY_BEGIN();
-    RUN_TEST(test_ignored_channels);
-    RUN_TEST(test_one_voice);
+    RUN_TEST(test_static_linked_list_push);
+    RUN_TEST(test_static_linked_list_remove);
+    // RUN_TEST(test_ignored_channels);
+    // RUN_TEST(test_one_voice);
     UNITY_END();
 }
 
