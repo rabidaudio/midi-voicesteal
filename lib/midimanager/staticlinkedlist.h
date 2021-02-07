@@ -7,7 +7,8 @@
 #define SLL_ASSERT_SANITY_CHECKS() \
     assert((size_==0) == (cur_==nullptr)); \
     assert(head_->up == nullptr); \
-    assert(tail_->down == nullptr);
+    assert(tail_->down == nullptr); \
+    assert(cur_ == nullptr || cur_->up != cur_->down);
 
 // StaticLinkedList is a linked list implementation which
 // uses no dynamic allocations. It's max size is determined
@@ -73,6 +74,15 @@ public:
     size_ = 0;
     cur_ = nullptr;
     SLL_ASSERT_SANITY_CHECKS();
+  }
+
+  T& operator[](size_t index)
+  {
+    Node* item = cur_;
+    for (size_t i = 0; i < index; i++) {
+      item = item->down;
+    }
+    return item->data;
   }
 
   // pushStack adds an item to the top, i.e. the next item to be popped.
@@ -141,31 +151,50 @@ public:
     return result;
   }
 
+  // removeAt removes elements from anywhere in the list.
+  // index zero is the top of the stack. O(n)
+  void removeAt(size_t index)
+  {
+    if (index >= size_) {
+      return; // outside bounds
+    }
+    if (index == 0) {
+      pop();
+      return;
+    }
+    Node* item = cur_;
+    for (size_t i = 0; i < index; i++) {
+      item = item->down;
+    }
+    freeToHead(item);
+    size_--;
+  }
+
   // removeIf removes elements from anywhere in the list selected by callback.
   // callback is given the value and the index of the element (from the top).
   // Returns the number if items removed. O(n)
-  size_t removeIf(bool (*callback)(const T*, size_t))
-  {
-    size_t removed = 0;
-    Node* item = cur_;
-    size_t i = 0;
-    while (item != nullptr)
-    {
-      if (callback(item->data, i)) {
-        if (item == cur_) {
-          pop(); // easy case
-        } else {
-          freeToHead(item);
-          size_--;
-        }
-        removed++;
-      }
-      item = item->down;
-      i++;
-    }
-    SLL_ASSERT_SANITY_CHECKS();
-    return removed;
-  }
+  // size_t removeIf(bool (*callback)(const T*, size_t))
+  // {
+  //   size_t removed = 0;
+  //   Node* item = cur_;
+  //   size_t i = 0;
+  //   while (item != nullptr)
+  //   {
+  //     if (callback(item->data, i)) {
+  //       if (item == cur_) {
+  //         pop(); // easy case
+  //       } else {
+  //         freeToHead(item);
+  //         size_--;
+  //       }
+  //       removed++;
+  //     }
+  //     item = item->down;
+  //     i++;
+  //   }
+  //   SLL_ASSERT_SANITY_CHECKS();
+  //   return removed;
+  // }
 
 private:
 
@@ -176,6 +205,7 @@ private:
       head_->up = nullptr;
     } else {
       item->down->up = item->up;
+      item->up->down = item->down;
     }
     tail_->down = item;
     item->up = tail_;
@@ -192,6 +222,7 @@ private:
       tail_->down = nullptr;
     } else {
       item->down->up = item->up;
+      item->up->down = item->down;
     }
     // put this one at the head
     head_->up = item;

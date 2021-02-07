@@ -2,16 +2,15 @@
 #include <stdio.h>
 #include <assert.h>
 
-// MidiManager<16, 4> manager = MidiManager<16, 4>(0);
-
 void doMain() {
   StaticLinkedList<size_t, 3> list;
-  for (size_t i = 1; i <= 10; i++) {
-    list.pushQueue(i);
-  }
-  while (!list.isEmpty()) {
-    printf("%lu\n", *list.pop());
-  }
+  list.pushStack(1);
+  list.pushStack(2);
+  list.pushStack(3);
+  list.removeAt(0);
+  list.pushStack(3);
+  list.removeAt(1);
+  printf("%lu %lu\n", list[0], list[1]);
 
   // MidiManager<16, 1> m = MidiManager<16, 1>(0);
   // m.handle(0, 50, 127);

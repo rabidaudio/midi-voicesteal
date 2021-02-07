@@ -35,7 +35,21 @@ void test_static_linked_list_queue_push() {
 }
 
 void test_static_linked_list_remove() {
-  // StaticLinkedList<size_t, 3> list;
+  StaticLinkedList<size_t, 3> list;
+  list.pushStack(1);
+  list.pushStack(2);
+  list.pushStack(3);
+  TEST_ASSERT_EQUAL(3, list.size());
+  list.removeAt(0);
+  TEST_ASSERT_EQUAL(2, list.size());
+  TEST_ASSERT_EQUAL(2, *list.peek());
+
+  list.pushStack(3);
+  list.removeAt(1);
+  TEST_ASSERT_EQUAL(2, list.size());
+  TEST_ASSERT_EQUAL(3, *list.peek());
+  TEST_ASSERT_EQUAL(3, list[0]);
+  TEST_ASSERT_EQUAL(1, list[1]);
   // Node<size_t>* n;
   // // remove element when empty
   // list.remove(list.head_);
@@ -151,7 +165,7 @@ void process() {
     UNITY_BEGIN();
     RUN_TEST(test_static_linked_list_stack_push);
     RUN_TEST(test_static_linked_list_queue_push);
-    // RUN_TEST(test_static_linked_list_remove);
+    RUN_TEST(test_static_linked_list_remove);
     // RUN_TEST(test_ignored_channels);
     // RUN_TEST(test_one_voice);
     // RUN_TEST(test_one_voice_stack);
