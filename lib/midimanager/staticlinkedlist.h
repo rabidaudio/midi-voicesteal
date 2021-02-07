@@ -2,21 +2,16 @@
 #ifndef LIB_MIDIMANAGER_STATICLINKEDLIST_H_
 #define LIB_MIDIMANAGER_STATICLINKEDLIST_H_
 
+#include <assert.h>
 #include "./types.h"
 
-#ifdef DEBUG
-
-#include <assert.h>
 #define SLL_ASSERT_SANITY_CHECKS() \
     assert((size_ == 0) == (cur_ == nullptr)); \
-    if (TSize != 1) { \
+    if (TSize > 1) { \
       assert(head_->up == nullptr); \
       assert(tail_->down == nullptr); \
       assert(cur_ == nullptr || cur_->up != cur_->down); \
     }
-#else
-#define SLL_ASSERT_SANITY_CHECKS()
-#endif
 
 // StaticLinkedList is a linked list implementation which
 // uses no dynamic allocations. It's max size is determined

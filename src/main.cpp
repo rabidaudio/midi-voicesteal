@@ -1,28 +1,26 @@
+// Copyright 2021 Charles Julian Knight
 #include <midimanager.h>
 #include <stdio.h>
 #include <assert.h>
 
-void doMain() {
-  StaticLinkedList<size_t, 1> list;
-  list.pushStack(1);
-  list.pushStack(2);
-  list.pushStack(3);
-  printf("%lu %lu\n", list[0], list.size());
+MidiManager<16, 2> m;
 
-  // MidiManager<16, 1> m = MidiManager<16, 1>(0);
-  // m.handle(0, 50, 127);
-  // printf("%d %d\n", m.get(0).note, m.get(0).velocity);
-  // m.handle(0, 45, 96);
-  // printf("%d %d\n", m.get(0).note, m.get(0).velocity);
-  // m.handle(0, 50, 63);
-  // printf("%d %d\n", m.get(0).note, m.get(0).velocity);
-  // m.handle(0, 45, 0);
-  // printf("%d %d\n", m.get(0).note, m.get(0).velocity);
-  // m.handle(0, 45, 96);
-  // printf("%d %d\n", m.get(0).note, m.get(0).velocity);
-  // m.handle(0, 50, 0);
-  // printf("%d %d\n", m.get(0).note, m.get(0).velocity);
-  // m.handle(0, 45, 0);
+void doMain() {
+  printf("size: %lu %lu %lu\n", sizeof(MidiManager<16, 2>), sizeof(size_t*), sizeof(size_t));
+  m.handle(0, 50, 127);
+  printf("%d, %d :: %d, %d\n", m.get(0).note, m.get(0).velocity, m.get(1).note, m.get(1).velocity);
+  m.handle(0, 45, 96);
+  printf("%d, %d :: %d, %d\n", m.get(0).note, m.get(0).velocity, m.get(1).note, m.get(1).velocity);
+  m.handle(0, 50, 63);
+  printf("%d, %d :: %d, %d\n", m.get(0).note, m.get(0).velocity, m.get(1).note, m.get(1).velocity);
+  m.handle(0, 45, 0);
+  printf("%d, %d :: %d, %d\n", m.get(0).note, m.get(0).velocity, m.get(1).note, m.get(1).velocity);
+  m.handle(0, 45, 96);
+  printf("%d, %d :: %d, %d\n", m.get(0).note, m.get(0).velocity, m.get(1).note, m.get(1).velocity);
+  m.handle(0, 50, 0);
+  printf("%d, %d :: %d, %d\n", m.get(0).note, m.get(0).velocity, m.get(1).note, m.get(1).velocity);
+  m.handle(0, 45, 0);
+  printf("%d, %d :: %d, %d\n", m.get(0).note, m.get(0).velocity, m.get(1).note, m.get(1).velocity);
 }
 
 #ifdef ARDUINO
@@ -30,14 +28,10 @@ void doMain() {
 void setup() {
   doMain();
 }
-
 void loop() {}
-
-#else // ARDUINO
-
+#else  // ARDUINO
 int main(int argc, char **argv) {
     doMain();
     return 0;
 }
-
-#endif // ARDUINO
+#endif  // ARDUINO

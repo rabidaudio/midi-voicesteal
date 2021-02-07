@@ -1,156 +1,132 @@
-#ifndef MIDIMANAGER_H
-#define MIDIMANAGER_H
+// Copyright 2021 Charles Julian Knight
+#ifndef LIB_MIDIMANAGER_MIDIMANAGER_H_
+#define LIB_MIDIMANAGER_MIDIMANAGER_H_
 
-#include "types.h"
-#include "staticlinkedlist.h"
+#include "./types.h"
+#include "./staticlinkedlist.h"
 
-typedef uint8_t channel; // 0..<16
-typedef uint8_t note; // 0..<128
-typedef uint8_t velocity; // 0..<128
+typedef uint8_t Channel;   // 0..<16
+typedef uint8_t Note;      // 0..<128
+typedef uint8_t Velocity;  // 0..<128
 
-struct MidiEvent
-{
-  note note;
-  velocity velocity;
+struct MidiEvent {
+  // channel channel;
+  Note note;
+  Velocity velocity;
 
-  bool matches(const MidiEvent& other)
-  {
-    return other.note == note;
+  bool matches(const MidiEvent& other) {
+    return other.note == note /* && other.channel == channel */;
   }
 
-  bool isOn()
-  {
+  bool isOn() {
     return velocity > 0;
   }
 };
 
-const MidiEvent EMPTY = {0,0};
+// A MidiManager tracks the state of pressed keys through
+// MIDI messages, and assigns keys to a given number of voices.
+// New keys will "steal" voices from earlier keys if no more
+// voices are available, but pressed keys are remembered such
+// that releasing a key assigned to a voice will assign that
+// voice to the most-recently-pressed waiting key. It tracks
+// changes in velocity for different keys.
+// VSize is the number of voices supported, while MSize is
+// the maximum number of pressed keys to track. Reducing MSize
+// will reduce the memory footprint, but if MSize is exceeded
+// then the oldest pressed keys will be forgotten.
+// Unused voices are assigned in order (lowest to highest),
+// if all voices are in use the oldest voice is stolen for
+// new keys.
+template <size_t MSize, size_t VSize> class MidiManager {
+ private:
+  typedef size_t Voice;
+  Channel channel_;  // TODO(cjk): figure out multi-channel support
+  MidiEvent voices_[VSize];
+  StaticLinkedList<Voice, VSize> unassigned_voices_;
+  StaticLinkedList<Voice, VSize> assigned_voices_;
+  StaticLinkedList<MidiEvent, MSize> pending_notes_;
 
-template <size_t QSize, size_t VSize> class MidiManager
-{
-private:
-  StaticLinkedList<MidiEvent, QSize> queue_;
-  MidiEvent* voices_[VSize];
-  uint8_t channel_;
-  size_t availableVoices_;
-
-public:
-  MidiManager(uint8_t channel)
-  {
-    channel_ = channel;
-    availableVoices_ = VSize;
+ public:
+  MidiManager() {
+    channel_ = 0;
+    for (Voice v = 0; v < VSize; v++) {
+      voices_[v].velocity = 0;
+      voices_[v].note = 0;
+      unassigned_voices_.pushQueue(v);
+    }
   }
 
-  void handle(channel c, note n, velocity v)
-  {
-    // // TODO: can a single one manage multiple channels? should be a matter of checking channel+note
-    // if (c != channel_) {
-    //   return; // ignore events for other channels
-    // }
-    // MidiEvent e = { .note = n, .velocity = v };
-    // Node<MidiEvent>* cur = queue_.head_;
-    // if (!e.isOn()) {
-    //   // note off
+  void handle(Channel c, Note n, Velocity v) {
+    if (c != channel_) {
+      return;  // ignore events for other channels
+    }
+    MidiEvent e = { n, v };
+    if (e.isOn()) {
+      // update the velocity if it's already playing
+      for (size_t i = 0; i < assigned_voices_.size(); i++) {
+        if (voices_[assigned_voices_[i]].matches(e)) {
+          voices_[assigned_voices_[i]].velocity = e.velocity;
+          return;
+        }
+      }
+      // update the velocity if it's already tracked
+      for (size_t i = 0; i < pending_notes_.size(); i++) {
+        if (pending_notes_[i].matches(e)) {
+          pending_notes_[i].velocity = e.velocity;
+          return;
+        }
+      }
+      // must be a new note
+      Voice v;
+      if (unassigned_voices_.isEmpty()) {
+        v = assigned_voices_.pop();  // steal oldest voice
+        // save that voice's current note for later
+        pending_notes_.pushStack(voices_[v]);
+      } else {
+        v = unassigned_voices_.pop();
+      }
+      assigned_voices_.pushQueue(v);
+      voices_[v] = e;
+      return;
+    }
+    // else note off
 
-    //   if (queue_.isEmpty()) {
-    //     // we got a note off event for a note we weren't tracking.
-    //     // normally this might be considered unexpected, but it can happen
-    //     // if notes were pressed before we initialized, or if we overran
-    //     // our queue size in pressed notes
-    //     return;
-    //   }
+    // if it's a queued note simply forget about it
+    for (size_t i = 0; i < pending_notes_.size(); i++) {
+      if (pending_notes_[i].matches(e)) {
+        pending_notes_[i].velocity = 0;
+        pending_notes_.removeAt(i);
+        return;
+      }
+    }
 
-    //   while (true) {
-    //     if (cur->data.matches(e)) {
-    //       // we got a match, so we want to either replace this voice
-    //       // with the next in the queue, or turn this voice off if
-    //       // the queue is empty
+    // TODO(cjk): looping though index like this is O(n^2) as each index is O(n)
+    // could use an iterator instead.
+    for (size_t i = 0; i < assigned_voices_.size(); i++) {
+      Voice v = assigned_voices_[i];
+      if (!voices_[v].matches(e)) {
+        continue;
+      }
+      // pressed note is now off
+      assigned_voices_.removeAt(i);
+      if (pending_notes_.isEmpty()) {
+        voices_[v].velocity = 0;
+        unassigned_voices_.pushQueue(v);
+      } else {
+        MidiEvent pending = pending_notes_.pop();
+        voices_[v] = pending;
+        assigned_voices_.pushQueue(v);
+      }
+    }
 
-    //       size_t voice = -1;
-    //       for (size_t i = 0; i < VSize; i++) {
-    //         if (voices_[i] == cur) {
-    //           // there's a voice pointing to this one
-    //           voice = i;
-    //           break;
-    //         }
-    //       }
-
-    //       queue_.remove(cur); // TODO: this is gross because it invalidates a pointer it knows we have
-    //       if (voice != -1) {
-    //         // we need to point this voice to the next available voice in the queue
-    //         if (queue_.isEmpty()) {
-    //           // there weren't any pending notes, so leave the voice off
-    //           // voices_[voice] = nullptr;
-    //           voices_[voice]->data.velocity = 0;
-    //           return;
-    //         }
-    //         cur = queue_.head_;
-    //         while (true) {
-    //           if (cur->next == queue_.cur_) {
-    //             // there weren't any pending notes, so leave the voice off
-    //             // voices_[voice] = nullptr;
-    //             voices_[voice]->data.velocity = 0;
-    //             return;
-    //           }
-    //           // TODO: these nested loops really suck
-    //           for (size_t v = 0; v < VSize; v++) {
-    //             if (cur->next == voices_[v]) {
-    //               // this is the next one in the queue
-    //               voices_[voice] = cur;
-    //               return;
-    //             }
-    //           }
-    //         }
-    //       } // else we let go of a note that was queued, so we can ignore it
-
-    //       return;
-    //     }
-    //     if (cur == queue_.cur_) {
-    //       // we got a note off event for a note we weren't tracking.
-    //       // normally this might be considered unexpected, but it can happen
-    //       // if notes were pressed before we initialized, or if we overran
-    //       // our queue size in pressed notes
-    //       return;
-    //     }
-    //     cur = cur->next;
-    //   }
-    // }
-
-    // // note on
-    // if (!queue_.isEmpty()) {
-    //   do {
-    //     if (cur->data.matches(e)) {
-    //       // update velocity
-    //       cur->data.velocity = v;
-    //       return;
-    //     }
-    //     cur = cur->next;
-    //   } while (cur != queue_.tail_);
-    // }
-    // // didn't already have the note, so add it
-    // cur = queue_.push(e);
-    // if (availableVoices_ > 0) {
-    //   // we found an available voice
-    //   voices_[VSize - availableVoices_] = cur;
-    //   availableVoices_--;
-    // } else {
-    //   // we've exhausted the available voices, so steal the oldest voice
-    //   // and add that one to the queue
-    //   // TODO: not always the first voice, round-robin the note to steal
-    //   voices_[0] = cur;
-    // }
+    // otherwise we got a note off for a note we weren't tracking.
+    // this can happen if notes were pressed before we initialized,
+    // or if we overran the max size of pending notes
   }
 
-  MidiEvent get(size_t voice)
-  {
-    if (voice > VSize) {
-      return EMPTY;
-    }
-    if (voices_[voice] == nullptr) {
-      return EMPTY;
-    }
-    return *voices_[voice];
+  MidiEvent get(Voice voice) {
+    return voices_[voice];
   }
 };
 
-#endif // MIDIMANAGER_H
+#endif  // LIB_MIDIMANAGER_MIDIMANAGER_H_
