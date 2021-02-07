@@ -1,0 +1,3 @@
+This is state machine for tracking polyphonic MIDI voices. It maintains a memory of pressed down keys which can extend beyond the number of voices, and return to them when voices are freed. It supports an arbitrary number of voices and an arbitrary amount of memory. Most importantly, it uses no dynamic memory allocation, which is important for both embedded firmware and for realtime audio processing contexts.
+
+This project uses [platformio](https://platformio.org/) to leverage it's build and testing environment, and is tested for both native and Arduino, and should be generally portable to other platforms.
