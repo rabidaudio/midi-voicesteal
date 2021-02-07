@@ -7,18 +7,17 @@ void test_static_linked_list_stack_push() {
   TEST_ASSERT_TRUE(list.isEmpty());
   for (size_t i = 1; i <= 10; i++) {
     list.pushStack(i);
-    TEST_ASSERT_EQUAL(i, *list.peek());
+    TEST_ASSERT_EQUAL(i, list.peek());
     TEST_ASSERT_FALSE(list.isEmpty());
-    TEST_ASSERT_EQUAL(i, *list.pop());
+    TEST_ASSERT_EQUAL(i, list.pop());
     list.pushStack(i);
     TEST_ASSERT_FALSE(list.isEmpty());
   }
   TEST_ASSERT_EQUAL(3, list.size());
-  TEST_ASSERT_EQUAL(10, *list.pop());
-  TEST_ASSERT_EQUAL(9, *list.pop());
-  TEST_ASSERT_EQUAL(8, *list.pop());
+  TEST_ASSERT_EQUAL(10, list.pop());
+  TEST_ASSERT_EQUAL(9, list.pop());
+  TEST_ASSERT_EQUAL(8, list.pop());
   TEST_ASSERT_TRUE(list.isEmpty());
-  TEST_ASSERT_NULL(list.pop());
 }
 
 void test_static_linked_list_queue_push() {
@@ -29,9 +28,9 @@ void test_static_linked_list_queue_push() {
     TEST_ASSERT_FALSE(list.isEmpty());
   }
   TEST_ASSERT_EQUAL(3, list.size());
-  TEST_ASSERT_EQUAL(8, *list.pop());
-  TEST_ASSERT_EQUAL(9, *list.pop());
-  TEST_ASSERT_EQUAL(10, *list.pop());
+  TEST_ASSERT_EQUAL(8, list.pop());
+  TEST_ASSERT_EQUAL(9, list.pop());
+  TEST_ASSERT_EQUAL(10, list.pop());
 }
 
 void test_static_linked_list_remove() {
@@ -42,12 +41,12 @@ void test_static_linked_list_remove() {
   TEST_ASSERT_EQUAL(3, list.size());
   list.removeAt(0);
   TEST_ASSERT_EQUAL(2, list.size());
-  TEST_ASSERT_EQUAL(2, *list.peek());
+  TEST_ASSERT_EQUAL(2, list.peek());
 
   list.pushStack(3);
   list.removeAt(1);
   TEST_ASSERT_EQUAL(2, list.size());
-  TEST_ASSERT_EQUAL(3, *list.peek());
+  TEST_ASSERT_EQUAL(3, list.peek());
   TEST_ASSERT_EQUAL(3, list[0]);
   TEST_ASSERT_EQUAL(1, list[1]);
   // Node<size_t>* n;
@@ -113,6 +112,17 @@ void test_static_linked_list_remove() {
   // // TODO: test a lot of ads and removes for segfaults 
 }
 
+void test_static_linked_list_mutate_elements() {
+  StaticLinkedList<size_t, 3> list;
+  list.pushStack(1);
+  list.pushStack(2);
+
+  list[0] = 5;
+  TEST_ASSERT_EQUAL(5, list.peek());
+  TEST_ASSERT_EQUAL(5, list.pop());
+  TEST_ASSERT_EQUAL(1, list.pop());
+}
+
 void test_ignored_channels() {
   MidiManager<16, 1> m = MidiManager<16, 1>(0);
   m.handle(1, 50, 127);
@@ -166,6 +176,7 @@ void process() {
     RUN_TEST(test_static_linked_list_stack_push);
     RUN_TEST(test_static_linked_list_queue_push);
     RUN_TEST(test_static_linked_list_remove);
+    RUN_TEST(test_static_linked_list_mutate_elements);
     // RUN_TEST(test_ignored_channels);
     // RUN_TEST(test_one_voice);
     // RUN_TEST(test_one_voice_stack);

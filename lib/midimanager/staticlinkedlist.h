@@ -6,9 +6,11 @@
 
 #define SLL_ASSERT_SANITY_CHECKS() \
     assert((size_==0) == (cur_==nullptr)); \
-    assert(head_->up == nullptr); \
-    assert(tail_->down == nullptr); \
-    assert(cur_ == nullptr || cur_->up != cur_->down);
+    if (TSize != 1) { \
+      assert(head_->up == nullptr); \
+      assert(tail_->down == nullptr); \
+      assert(cur_ == nullptr || cur_->up != cur_->down); \
+    }
 
 // StaticLinkedList is a linked list implementation which
 // uses no dynamic allocations. It's max size is determined
@@ -17,21 +19,19 @@
 // It has 2 push implementations, allowing it to be used
 // as a stack or as a queue (or a combination).
 // It also has the ability to remove elements from arbitrary
-// positions in the list, using a function pointer to decide
-// which elements to remove. All operations are constant time
-// except for the arbitrary removal, which is linear.
+// positions in the list. All operations are constant time
+// except for arbitrary access and removal, which are linear.
 // This class is *not* thread-safe.
-// TSize must to be at least 2. TODO: is this true? can we fix this?
+// TSize must be positive.
 template <typename T, size_t TSize> class StaticLinkedList
 {
+private:
   struct Node
   {
     T data;
-    Node* up; // down the stack
-    Node* down; // up the stack
+    Node* up;
+    Node* down;
   };
-
-private:
   Node nodes_[TSize];
   Node* head_; // the max slot
   Node* tail_; // the min slot
@@ -41,18 +41,25 @@ private:
 public:
   StaticLinkedList()
   {
-    tail_ = nodes_;
-    head_ = nodes_ + TSize - 1;
+    assert(TSize > 0);
     cur_ = nullptr;
     size_ = 0;
+    tail_ = nodes_;
+    head_ = nodes_ + TSize - 1;
     for (size_t i = 1; i < TSize-1; i++) {
       nodes_[i].up = nodes_ + i + 1;
       nodes_[i].down = nodes_ + i - 1;
     }
     tail_->down = nullptr;
+    head_->up = nullptr;
+    if (TSize == 1) {
+      tail_->up = nullptr;
+      head_->down = nullptr;
+      return;
+    }
     tail_->up = nodes_ + 1;
     head_->down = nodes_ + TSize - 2;
-    head_->up = nullptr;
+    SLL_ASSERT_SANITY_CHECKS();
   }
 
   ~StaticLinkedList() {}
@@ -97,6 +104,11 @@ public:
       SLL_ASSERT_SANITY_CHECKS();
       return;
     }
+    if (TSize == 1) {
+      cur_->data = item;
+      SLL_ASSERT_SANITY_CHECKS();
+      return;
+    }
     if (cur_->up == nullptr) {
       // we're full, so steal from the bottom
       freeToHead(tail_);
@@ -115,7 +127,7 @@ public:
   // as a queue. Steals from the top if the list is full. O(1).
   void pushQueue(const T item)
   {
-    if (isEmpty()) {
+    if (isEmpty() || TSize == 1) {
       pushStack(item);
       return;
     }
@@ -131,24 +143,17 @@ public:
   }
 
   // look at the next item without chaning the list.
-  // returns null if the list is empty.
-  T* peek() {
-    if (isEmpty()) {
-      return nullptr;
-    }
-    return &cur_->data;
+  T& peek() {
+    return cur_->data;
   }
 
-  T* pop()
+  T& pop()
   {
-    if (isEmpty()) {
-      return nullptr;
-    }
     T* result = &cur_->data;
     cur_ = cur_->down; // this will be nullptr if we're at tail, which is expected
     size_--;
     SLL_ASSERT_SANITY_CHECKS();
-    return result;
+    return *result;
   }
 
   // removeAt removes elements from anywhere in the list.
@@ -169,32 +174,6 @@ public:
     freeToHead(item);
     size_--;
   }
-
-  // removeIf removes elements from anywhere in the list selected by callback.
-  // callback is given the value and the index of the element (from the top).
-  // Returns the number if items removed. O(n)
-  // size_t removeIf(bool (*callback)(const T*, size_t))
-  // {
-  //   size_t removed = 0;
-  //   Node* item = cur_;
-  //   size_t i = 0;
-  //   while (item != nullptr)
-  //   {
-  //     if (callback(item->data, i)) {
-  //       if (item == cur_) {
-  //         pop(); // easy case
-  //       } else {
-  //         freeToHead(item);
-  //         size_--;
-  //       }
-  //       removed++;
-  //     }
-  //     item = item->down;
-  //     i++;
-  //   }
-  //   SLL_ASSERT_SANITY_CHECKS();
-  //   return removed;
-  // }
 
 private:
 

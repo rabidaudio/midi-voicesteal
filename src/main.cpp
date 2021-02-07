@@ -3,14 +3,11 @@
 #include <assert.h>
 
 void doMain() {
-  StaticLinkedList<size_t, 3> list;
+  StaticLinkedList<size_t, 1> list;
   list.pushStack(1);
   list.pushStack(2);
   list.pushStack(3);
-  list.removeAt(0);
-  list.pushStack(3);
-  list.removeAt(1);
-  printf("%lu %lu\n", list[0], list[1]);
+  printf("%lu %lu\n", list[0], list.size());
 
   // MidiManager<16, 1> m = MidiManager<16, 1>(0);
   // m.handle(0, 50, 127);
