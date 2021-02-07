@@ -1,16 +1,22 @@
-#ifndef STATICLINKEDLIST_H
-#define STATICLINKEDLIST_H
+// Copyright 2021 Charles Julian Knight
+#ifndef LIB_MIDIMANAGER_STATICLINKEDLIST_H_
+#define LIB_MIDIMANAGER_STATICLINKEDLIST_H_
+
+#include "./types.h"
+
+#ifdef DEBUG
 
 #include <assert.h>
-#include "types.h"
-
 #define SLL_ASSERT_SANITY_CHECKS() \
-    assert((size_==0) == (cur_==nullptr)); \
+    assert((size_ == 0) == (cur_ == nullptr)); \
     if (TSize != 1) { \
       assert(head_->up == nullptr); \
       assert(tail_->down == nullptr); \
       assert(cur_ == nullptr || cur_->up != cur_->down); \
     }
+#else
+#define SLL_ASSERT_SANITY_CHECKS()
+#endif
 
 // StaticLinkedList is a linked list implementation which
 // uses no dynamic allocations. It's max size is determined
@@ -23,24 +29,21 @@
 // except for arbitrary access and removal, which are linear.
 // This class is *not* thread-safe.
 // TSize must be positive.
-template <typename T, size_t TSize> class StaticLinkedList
-{
-private:
-  struct Node
-  {
+template <typename T, size_t TSize> class StaticLinkedList {
+ private:
+  struct Node {
     T data;
     Node* up;
     Node* down;
   };
   Node nodes_[TSize];
-  Node* head_; // the max slot
-  Node* tail_; // the min slot
-  Node* cur_; // the top of the stack, from tail
+  Node* head_;  // the max slot
+  Node* tail_;  // the min slot
+  Node* cur_;   // the top of the stack, from tail
   size_t size_;
 
-public:
-  StaticLinkedList()
-  {
+ public:
+  StaticLinkedList() {
     assert(TSize > 0);
     cur_ = nullptr;
     size_ = 0;
@@ -64,27 +67,23 @@ public:
 
   ~StaticLinkedList() {}
 
-  bool isEmpty()
-  {
+  bool isEmpty() {
     SLL_ASSERT_SANITY_CHECKS();
     return size_ == 0;
   }
 
-  size_t size()
-  {
+  size_t size() {
     SLL_ASSERT_SANITY_CHECKS();
     return size_;
   }
 
-  void clear()
-  {
+  void clear() {
     size_ = 0;
     cur_ = nullptr;
     SLL_ASSERT_SANITY_CHECKS();
   }
 
-  T& operator[](size_t index)
-  {
+  T& operator[](size_t index) {
     Node* item = cur_;
     for (size_t i = 0; i < index; i++) {
       item = item->down;
@@ -95,8 +94,7 @@ public:
   // pushStack adds an item to the top, i.e. the next item to be popped.
   // Use this if you wish to use the list as a stack. If the stack is full,
   // it will forget the oldest item in the stack. O(1).
-  void pushStack(const T item)
-  {
+  void pushStack(const T item) {
     if (cur_ == nullptr) {
       tail_->data = item;
       cur_ = tail_;
@@ -125,8 +123,7 @@ public:
   // pushQueue adds the item to the bottom, i.e. the last
   // item to be popped. Use this if you which to use the list
   // as a queue. Steals from the top if the list is full. O(1).
-  void pushQueue(const T item)
-  {
+  void pushQueue(const T item) {
     if (isEmpty() || TSize == 1) {
       pushStack(item);
       return;
@@ -147,10 +144,10 @@ public:
     return cur_->data;
   }
 
-  T& pop()
-  {
+  T& pop() {
     T* result = &cur_->data;
-    cur_ = cur_->down; // this will be nullptr if we're at tail, which is expected
+    // this will set cur_ to nullptr if we're at tail, which is expected
+    cur_ = cur_->down;
     size_--;
     SLL_ASSERT_SANITY_CHECKS();
     return *result;
@@ -158,11 +155,8 @@ public:
 
   // removeAt removes elements from anywhere in the list.
   // index zero is the top of the stack. O(n)
-  void removeAt(size_t index)
-  {
-    if (index >= size_) {
-      return; // outside bounds
-    }
+  void removeAt(size_t index) {
+    if (index >= size_) return;  // outside bounds
     if (index == 0) {
       pop();
       return;
@@ -175,10 +169,8 @@ public:
     size_--;
   }
 
-private:
-
-  void freeToTail(Node* item)
-  {
+ private:
+  void freeToTail(Node* item) {
     if (item->up == nullptr) {
       head_ = head_->down;
       head_->up = nullptr;
@@ -193,8 +185,7 @@ private:
     SLL_ASSERT_SANITY_CHECKS();
   }
 
-  void freeToHead(Node* item)
-  {
+  void freeToHead(Node* item) {
     // remove this one from the chain
     if (item->down == nullptr) {
       tail_ = tail_->up;
@@ -212,4 +203,4 @@ private:
   }
 };
 
-#endif // STATICLINKEDLIST_H
+#endif  // LIB_MIDIMANAGER_STATICLINKEDLIST_H_
