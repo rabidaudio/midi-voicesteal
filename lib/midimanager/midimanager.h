@@ -31,9 +31,9 @@ public:
   typedef Node<T> NodeType;
 
   NodeType nodes_[TSize];
-  NodeType* head_; // the first element
-  NodeType* tail_; // the last element
-  NodeType* cur_; // the most resent element with data
+  NodeType* head_; // the first slot
+  NodeType* tail_; // the last slot
+  NodeType* cur_; // the top of the stack
 
   StaticLinkedList()
   {
@@ -99,27 +99,20 @@ public:
       prev = next;
       next = prev->next;
     }
-    // now next==item and prev is the one before (could be nullptr if head_)
-    // next could also be tail_
-    if (prev == nullptr) {
-      // remove first element
-      head_ = next->next;
-      tail_->next = next;
-      tail_ = next;
-      next->next = nullptr;
-    } else if (next == cur_) {
-      // remove last element
-      // this is the base case for linked lists, where we just pop cur_ back one
-    } else {
-      // remove from inside the used space
-      prev->next = next->next;
-      tail_->next = next;
-      tail_ = next;
-      next->next = nullptr;
-    }
     if (next == cur_) {
+      // simple case, linked list pop
       cur_ = prev; // this will be nullptr if we're at head_, which is expected
+      return;
     }
+    // remove from inside the used space
+    if (prev == nullptr) {
+      head_ = head_->next;
+    } else {
+      prev->next = next->next;
+    }
+    tail_->next = next;
+    tail_ = next;
+    next->next = nullptr;
   }
 };
 
@@ -168,26 +161,67 @@ public:
       // note off
 
       if (queue_.isEmpty()) {
-        // strange, why did we get a note off event for a note we didn't have?
+        // we got a note off event for a note we weren't tracking.
+        // normally this might be considered unexpected, but it can happen
+        // if notes were pressed before we initialized, or if we overran
+        // our queue size in pressed notes
         return;
       }
-      
-      do {
+
+      while (true) {
         if (cur->data.matches(e)) {
           // we got a match, so we want to either replace this voice
           // with the next in the queue, or turn this voice off if
           // the queue is empty
-          
+
+          size_t voice = -1;
+          for (size_t i = 0; i < VSize; i++) {
+            if (voices_[i] == cur) {
+              // there's a voice pointing to this one
+              voice = i;
+              break;
+            }
+          }
+
+          queue_.remove(cur); // TODO: this is gross because it invalidates a pointer it knows we have
+          if (voice != -1) {
+            // we need to point this voice to the next available voice in the queue
+            if (queue_.isEmpty()) {
+              // there weren't any pending notes, so leave the voice off
+              // voices_[voice] = nullptr;
+              voices_[voice]->data.velocity = 0;
+              return;
+            }
+            cur = queue_.head_;
+            while (true) {
+              if (cur->next == queue_.cur_) {
+                // there weren't any pending notes, so leave the voice off
+                // voices_[voice] = nullptr;
+                voices_[voice]->data.velocity = 0;
+                return;
+              }
+              // TODO: these nested loops really suck
+              for (size_t v = 0; v < VSize; v++) {
+                if (cur->next == voices_[v]) {
+                  // this is the next one in the queue
+                  voices_[voice] = cur;
+                  return;
+                }
+              }
+            }
+          } // else we let go of a note that was queued, so we can ignore it
 
           return;
         }
+        if (cur == queue_.cur_) {
+          // we got a note off event for a note we weren't tracking.
+          // normally this might be considered unexpected, but it can happen
+          // if notes were pressed before we initialized, or if we overran
+          // our queue size in pressed notes
+          return;
+        }
         cur = cur->next;
-      } while (cur != queue_.tail_);
-
-    // otherwise we let go of a note that's in the queue, so
-    // remove that note from the queue
-
-      return;
+      }
     }
 
     // note on

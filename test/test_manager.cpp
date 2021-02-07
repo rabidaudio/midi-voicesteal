@@ -127,12 +127,38 @@ void test_one_voice() {
   TEST_ASSERT_EQUAL(0, m.get(0).velocity);
 }
 
+void test_one_voice_stack() {
+  MidiManager<16, 1> m = MidiManager<16, 1>(0);
+  m.handle(0, 50, 127);
+  TEST_ASSERT_EQUAL(50, m.get(0).note);
+  TEST_ASSERT_EQUAL(127, m.get(0).velocity);
+  m.handle(0, 45, 96);
+  TEST_ASSERT_EQUAL(45, m.get(0).note);
+  TEST_ASSERT_EQUAL(96, m.get(0).velocity);
+  m.handle(0, 50, 63);
+  TEST_ASSERT_EQUAL(45, m.get(0).note);
+  TEST_ASSERT_EQUAL(96, m.get(0).velocity);
+  m.handle(0, 45, 0);
+  TEST_ASSERT_EQUAL(50, m.get(0).note);
+  TEST_ASSERT_EQUAL(63, m.get(0).velocity);
+  m.handle(0, 45, 96);
+  TEST_ASSERT_EQUAL(45, m.get(0).note);
+  TEST_ASSERT_EQUAL(96, m.get(0).velocity);
+  m.handle(0, 50, 0);
+  TEST_ASSERT_EQUAL(45, m.get(0).note);
+  TEST_ASSERT_EQUAL(96, m.get(0).velocity);
+  m.handle(0, 45, 0);
+  TEST_ASSERT_EQUAL(45, m.get(0).note);
+  TEST_ASSERT_EQUAL(0, m.get(0).velocity);
+}
+
 void process() {
     UNITY_BEGIN();
     RUN_TEST(test_static_linked_list_push);
     RUN_TEST(test_static_linked_list_remove);
-    // RUN_TEST(test_ignored_channels);
-    // RUN_TEST(test_one_voice);
+    RUN_TEST(test_ignored_channels);
+    RUN_TEST(test_one_voice);
+    RUN_TEST(test_one_voice_stack);
     UNITY_END();
 }
 
