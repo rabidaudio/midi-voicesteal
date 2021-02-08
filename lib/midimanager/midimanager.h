@@ -18,32 +18,33 @@ struct MidiEvent {
 // that releasing a key assigned to a voice will assign that
 // voice to the most-recently-pressed waiting key. It tracks
 // changes in velocity for different keys.
-// VSize is the number of voices supported, while MSize is
+// VSize is the max number of voices supported, while MSize is
 // the maximum number of pressed keys to track. Reducing MSize
 // will reduce the memory footprint, but if MSize is exceeded
 // then the oldest pressed keys will be forgotten.
-// Unused voices are assigned in order (lowest to highest),
-// if all voices are in use the oldest voice is stolen for
-// new keys.
+// The default number of voices is VSize but this can actually
+// be reduced at runtime.
+// Voices are assigned least-recently-used first.
+
 template <size_t MSize, size_t VSize> class MidiManager {
  private:
   typedef size_t Voice;
   MidiEvent voices_[VSize];
+  size_t supportedVoices_;
   StaticLinkedList<Voice, VSize> unassigned_voices_;
   StaticLinkedList<Voice, VSize> assigned_voices_;
   StaticLinkedList<MidiEvent, MSize> pending_notes_;
 
  public:
   MidiManager() {
-    for (Voice v = 0; v < VSize; v++) {
-      voices_[v].velocity = 0;
-      voices_[v].note = 0;
-      unassigned_voices_.pushQueue(v);
-    }
+    supportedVoices_ = VSize;
+    reset();
   }
 
   void handle(uint8_t note, uint8_t velocity) {
-    MidiEvent e = { note & 0x7F, velocity & 0x7F };
+    MidiEvent e;
+    e.note = note & 0x7F;
+    e.velocity = velocity & 0x7F;
     if (e.velocity > 0) {
       // update the velocity if it's already playing
       Iterator<Voice> i = assigned_voices_.iterator();
@@ -114,6 +115,27 @@ template <size_t MSize, size_t VSize> class MidiManager {
     // otherwise we got a note off for a note we weren't tracking.
     // this can happen if notes were pressed before we initialized,
     // or if we overran the max size of pending notes
+  }
+
+  void reset() {
+    pending_notes_.clear();
+    assigned_voices_.clear();
+    unassigned_voices_.clear();
+    for (Voice v = 0; v < supportedVoices_; v++) {
+      voices_[v].velocity = 0;
+      voices_[v].note = 0;
+      unassigned_voices_.pushQueue(v);
+    }
+  }
+
+  // reduce the number of supported voices at runtime. This
+  // will reset the manager.
+  void setVoices(size_t voices) {
+    if (voices >= VSize) {
+      return;
+    }
+    supportedVoices_ = voices;
+    reset();
   }
 
   MidiEvent get(Voice voice) {
