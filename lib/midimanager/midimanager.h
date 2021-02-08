@@ -63,16 +63,20 @@ template <size_t MSize, size_t VSize> class MidiManager {
     MidiEvent e = { n, v };
     if (e.isOn()) {
       // update the velocity if it's already playing
-      for (size_t i = 0; i < assigned_voices_.size(); i++) {
-        if (voices_[assigned_voices_[i]].matches(e)) {
-          voices_[assigned_voices_[i]].velocity = e.velocity;
+      Iterator<Voice> i = assigned_voices_.iterator();
+      while (i.hasNext()) {
+        Voice& v = i.next();
+        if (voices_[v].matches(e)) {
+          voices_[v].velocity = e.velocity;
           return;
         }
       }
       // update the velocity if it's already tracked
-      for (size_t i = 0; i < pending_notes_.size(); i++) {
-        if (pending_notes_[i].matches(e)) {
-          pending_notes_[i].velocity = e.velocity;
+      Iterator<MidiEvent> ni = pending_notes_.iterator();
+      while (ni.hasNext()) {
+        MidiEvent& n = ni.next();
+        if (n.matches(e)) {
+          n.velocity = e.velocity;
           return;
         }
       }
@@ -92,19 +96,24 @@ template <size_t MSize, size_t VSize> class MidiManager {
     // else note off
 
     // if it's a queued note simply forget about it
-    for (size_t i = 0; i < pending_notes_.size(); i++) {
-      if (pending_notes_[i].matches(e)) {
-        pending_notes_[i].velocity = 0;
+    Iterator<MidiEvent> ni = pending_notes_.iterator();
+    size_t i = 0;
+    while (ni.hasNext()) {
+      MidiEvent& n = ni.next();
+      if (n.matches(e)) {
+        n.velocity = 0;
         pending_notes_.removeAt(i);
         return;
       }
+      i++;
     }
 
-    // TODO(cjk): looping though index like this is O(n^2) as each index is O(n)
-    // could use an iterator instead.
-    for (size_t i = 0; i < assigned_voices_.size(); i++) {
-      Voice v = assigned_voices_[i];
+    Iterator<Voice> vi = assigned_voices_.iterator();
+    i = 0;
+    while (vi.hasNext()) {
+      Voice v = vi.next();
       if (!voices_[v].matches(e)) {
+        i++;
         continue;
       }
       // pressed note is now off
@@ -117,8 +126,8 @@ template <size_t MSize, size_t VSize> class MidiManager {
         voices_[v] = pending;
         assigned_voices_.pushQueue(v);
       }
+      return;
     }
-
     // otherwise we got a note off for a note we weren't tracking.
     // this can happen if notes were pressed before we initialized,
     // or if we overran the max size of pending notes

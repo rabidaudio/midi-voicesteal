@@ -13,6 +13,33 @@
       assert(cur_ == nullptr || cur_->up != cur_->down); \
     }
 
+template <typename T>
+struct Node {
+  T data;
+  Node<T>* up;
+  Node<T>* down;
+};
+
+template <typename T>
+class Iterator {
+ private:
+  Node<T>* index_;
+ public:
+  explicit Iterator(Node<T>* start) {
+    index_ = start;
+  }
+
+  bool hasNext() {
+    return index_ != nullptr;
+  }
+
+  T& next() {
+    T* value = &index_->data;
+    index_ = index_->down;
+    return *value;
+  }
+};
+
 // StaticLinkedList is a linked list implementation which
 // uses no dynamic allocations. It's max size is determined
 // at compile time by TSize. If it's max size is exceeded, it
@@ -26,15 +53,10 @@
 // TSize must be positive.
 template <typename T, size_t TSize> class StaticLinkedList {
  private:
-  struct Node {
-    T data;
-    Node* up;
-    Node* down;
-  };
-  Node nodes_[TSize];
-  Node* head_;  // the max slot
-  Node* tail_;  // the min slot
-  Node* cur_;   // the top of the stack, from tail
+  Node<T> nodes_[TSize];
+  Node<T>* head_;  // the max slot
+  Node<T>* tail_;  // the min slot
+  Node<T>* cur_;   // the top of the stack, from tail
   size_t size_;
 
  public:
@@ -78,12 +100,22 @@ template <typename T, size_t TSize> class StaticLinkedList {
     SLL_ASSERT_SANITY_CHECKS();
   }
 
+  // Index into an arbitrary position in the list. If you want
+  // to loop through all elements, use the iterator instead. O(n)
   T& operator[](size_t index) {
-    Node* item = cur_;
+    Iterator<T> it = iterator();
     for (size_t i = 0; i < index; i++) {
-      item = item->down;
+      it.next();
     }
-    return item->data;
+    return it.next();
+  }
+
+  // iterator provides a method to iterate through the items
+  // in the list in order. Note that if you mutate the list during
+  // the iteration, the iterator becomes invalid, and continuing to
+  // use it results in undefined behavior.
+  Iterator<T> iterator() {
+    return Iterator<T>(cur_);
   }
 
   // pushStack adds an item to the top, i.e. the next item to be popped.
@@ -156,7 +188,7 @@ template <typename T, size_t TSize> class StaticLinkedList {
       pop();
       return;
     }
-    Node* item = cur_;
+    Node<T>* item = cur_;
     for (size_t i = 0; i < index; i++) {
       item = item->down;
     }
@@ -165,7 +197,7 @@ template <typename T, size_t TSize> class StaticLinkedList {
   }
 
  private:
-  void freeToTail(Node* item) {
+  void freeToTail(Node<T>* item) {
     if (item->up == nullptr) {
       head_ = head_->down;
       head_->up = nullptr;
@@ -180,7 +212,7 @@ template <typename T, size_t TSize> class StaticLinkedList {
     SLL_ASSERT_SANITY_CHECKS();
   }
 
-  void freeToHead(Node* item) {
+  void freeToHead(Node<T>* item) {
     // remove this one from the chain
     if (item->down == nullptr) {
       tail_ = tail_->up;
