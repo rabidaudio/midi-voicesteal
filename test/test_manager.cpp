@@ -84,50 +84,43 @@ void test_static_linked_list_mutate_elements() {
   TEST_ASSERT_EQUAL(1, list.pop());
 }
 
-void test_ignored_channels() {
-  MidiManager<16, 1> m;
-  m.handle(1, 50, 127);
-  MidiEvent s0 = m.get(0);
-  TEST_ASSERT_EQUAL(0, s0.velocity);
-}
-
 void test_one_voice() {
   MidiManager<16, 1> m;
   // note on
-  m.handle(0, 50, 127);
+  m.handle(50, 127);
   TEST_ASSERT_EQUAL(50, m.get(0).note);
   TEST_ASSERT_EQUAL(127, m.get(0).velocity);
   // change velocity
-  m.handle(0, 50, 63);
+  m.handle(50, 63);
   TEST_ASSERT_EQUAL(50, m.get(0).note);
   TEST_ASSERT_EQUAL(63, m.get(0).velocity);
   // note off
-  m.handle(0, 50, 0);
+  m.handle(50, 0);
   TEST_ASSERT_EQUAL(50, m.get(0).note);
   TEST_ASSERT_EQUAL(0, m.get(0).velocity);
 }
 
 void test_one_voice_stack() {
   MidiManager<16, 1> m;
-  m.handle(0, 50, 127);
+  m.handle(50, 127);
   TEST_ASSERT_EQUAL(50, m.get(0).note);
   TEST_ASSERT_EQUAL(127, m.get(0).velocity);
-  m.handle(0, 45, 96);
+  m.handle(45, 96);
   TEST_ASSERT_EQUAL(45, m.get(0).note);
   TEST_ASSERT_EQUAL(96, m.get(0).velocity);
-  m.handle(0, 50, 63);
+  m.handle(50, 63);
   TEST_ASSERT_EQUAL(45, m.get(0).note);
   TEST_ASSERT_EQUAL(96, m.get(0).velocity);
-  m.handle(0, 45, 0);
+  m.handle(45, 0);
   TEST_ASSERT_EQUAL(50, m.get(0).note);
   TEST_ASSERT_EQUAL(63, m.get(0).velocity);
-  m.handle(0, 45, 96);
+  m.handle(45, 96);
   TEST_ASSERT_EQUAL(45, m.get(0).note);
   TEST_ASSERT_EQUAL(96, m.get(0).velocity);
-  m.handle(0, 50, 0);
+  m.handle(50, 0);
   TEST_ASSERT_EQUAL(45, m.get(0).note);
   TEST_ASSERT_EQUAL(96, m.get(0).velocity);
-  m.handle(0, 45, 0);
+  m.handle(45, 0);
   TEST_ASSERT_EQUAL(45, m.get(0).note);
   TEST_ASSERT_EQUAL(0, m.get(0).velocity);
 }
@@ -140,105 +133,105 @@ void test_multiple_voices() {
   TEST_ASSERT_EQUAL(0, m.get(1).velocity);
   TEST_ASSERT_EQUAL(0, m.get(2).note);
   TEST_ASSERT_EQUAL(0, m.get(2).velocity);
-  m.handle(0, 50, 127);
+  m.handle(50, 127);
   TEST_ASSERT_EQUAL(50, m.get(0).note);
   TEST_ASSERT_EQUAL(127, m.get(0).velocity);
   TEST_ASSERT_EQUAL(0, m.get(1).note);
   TEST_ASSERT_EQUAL(0, m.get(1).velocity);
   TEST_ASSERT_EQUAL(0, m.get(2).note);
   TEST_ASSERT_EQUAL(0, m.get(2).velocity);
-  m.handle(0, 51, 127);
+  m.handle(51, 127);
   TEST_ASSERT_EQUAL(50, m.get(0).note);
   TEST_ASSERT_EQUAL(127, m.get(0).velocity);
   TEST_ASSERT_EQUAL(51, m.get(1).note);
   TEST_ASSERT_EQUAL(127, m.get(1).velocity);
   TEST_ASSERT_EQUAL(0, m.get(2).note);
   TEST_ASSERT_EQUAL(0, m.get(2).velocity);
-  m.handle(0, 52, 127);
+  m.handle(52, 127);
   TEST_ASSERT_EQUAL(50, m.get(0).note);
   TEST_ASSERT_EQUAL(127, m.get(0).velocity);
   TEST_ASSERT_EQUAL(51, m.get(1).note);
   TEST_ASSERT_EQUAL(127, m.get(1).velocity);
   TEST_ASSERT_EQUAL(52, m.get(2).note);
   TEST_ASSERT_EQUAL(127, m.get(2).velocity);
-  m.handle(0, 53, 127);  // steal oldest note
+  m.handle(53, 127);  // steal oldest note
   TEST_ASSERT_EQUAL(53, m.get(0).note);
   TEST_ASSERT_EQUAL(127, m.get(0).velocity);
   TEST_ASSERT_EQUAL(51, m.get(1).note);
   TEST_ASSERT_EQUAL(127, m.get(1).velocity);
   TEST_ASSERT_EQUAL(52, m.get(2).note);
   TEST_ASSERT_EQUAL(127, m.get(2).velocity);
-  m.handle(0, 54, 127);  // steal oldest note
+  m.handle(54, 127);  // steal oldest note
   TEST_ASSERT_EQUAL(53, m.get(0).note);
   TEST_ASSERT_EQUAL(127, m.get(0).velocity);
   TEST_ASSERT_EQUAL(54, m.get(1).note);
   TEST_ASSERT_EQUAL(127, m.get(1).velocity);
   TEST_ASSERT_EQUAL(52, m.get(2).note);
   TEST_ASSERT_EQUAL(127, m.get(2).velocity);
-  m.handle(0, 50, 0);  // let go of pending note
+  m.handle(50, 0);  // let go of pending note
   TEST_ASSERT_EQUAL(53, m.get(0).note);
   TEST_ASSERT_EQUAL(127, m.get(0).velocity);
   TEST_ASSERT_EQUAL(54, m.get(1).note);
   TEST_ASSERT_EQUAL(127, m.get(1).velocity);
   TEST_ASSERT_EQUAL(52, m.get(2).note);
   TEST_ASSERT_EQUAL(127, m.get(2).velocity);
-  m.handle(0, 54, 0);  // let go of recent note
+  m.handle(54, 0);  // let go of recent note
   TEST_ASSERT_EQUAL(53, m.get(0).note);
   TEST_ASSERT_EQUAL(127, m.get(0).velocity);
   TEST_ASSERT_EQUAL(51, m.get(1).note);
   TEST_ASSERT_EQUAL(127, m.get(1).velocity);
   TEST_ASSERT_EQUAL(52, m.get(2).note);
   TEST_ASSERT_EQUAL(127, m.get(2).velocity);
-  m.handle(0, 55, 127);  // steal oldest voice
+  m.handle(55, 127);  // steal oldest voice
   TEST_ASSERT_EQUAL(53, m.get(0).note);
   TEST_ASSERT_EQUAL(127, m.get(0).velocity);
   TEST_ASSERT_EQUAL(51, m.get(1).note);
   TEST_ASSERT_EQUAL(127, m.get(1).velocity);
   TEST_ASSERT_EQUAL(55, m.get(2).note);
   TEST_ASSERT_EQUAL(127, m.get(2).velocity);
-  m.handle(0, 53, 0);
+  m.handle(53, 0);
   TEST_ASSERT_EQUAL(52, m.get(0).note);
   TEST_ASSERT_EQUAL(127, m.get(0).velocity);
   TEST_ASSERT_EQUAL(51, m.get(1).note);
   TEST_ASSERT_EQUAL(127, m.get(1).velocity);
   TEST_ASSERT_EQUAL(55, m.get(2).note);
   TEST_ASSERT_EQUAL(127, m.get(2).velocity);
-  m.handle(0, 51, 0);
+  m.handle(51, 0);
   TEST_ASSERT_EQUAL(52, m.get(0).note);
   TEST_ASSERT_EQUAL(127, m.get(0).velocity);
   TEST_ASSERT_EQUAL(51, m.get(1).note);
   TEST_ASSERT_EQUAL(0, m.get(1).velocity);
   TEST_ASSERT_EQUAL(55, m.get(2).note);
   TEST_ASSERT_EQUAL(127, m.get(2).velocity);
-  m.handle(0, 55, 0);
+  m.handle(55, 0);
   TEST_ASSERT_EQUAL(52, m.get(0).note);
   TEST_ASSERT_EQUAL(127, m.get(0).velocity);
   TEST_ASSERT_EQUAL(51, m.get(1).note);
   TEST_ASSERT_EQUAL(0, m.get(1).velocity);
   TEST_ASSERT_EQUAL(55, m.get(2).note);
   TEST_ASSERT_EQUAL(0, m.get(2).velocity);
-  m.handle(0, 52, 0);
+  m.handle(52, 0);
   TEST_ASSERT_EQUAL(52, m.get(0).note);
   TEST_ASSERT_EQUAL(0, m.get(0).velocity);
   TEST_ASSERT_EQUAL(51, m.get(1).note);
   TEST_ASSERT_EQUAL(0, m.get(1).velocity);
   TEST_ASSERT_EQUAL(55, m.get(2).note);
   TEST_ASSERT_EQUAL(0, m.get(2).velocity);
-  m.handle(0, 56, 63);
+  m.handle(56, 63);
   TEST_ASSERT_EQUAL(52, m.get(0).note);
   TEST_ASSERT_EQUAL(0, m.get(0).velocity);
   TEST_ASSERT_EQUAL(56, m.get(1).note);
   TEST_ASSERT_EQUAL(63, m.get(1).velocity);
   TEST_ASSERT_EQUAL(55, m.get(2).note);
   TEST_ASSERT_EQUAL(0, m.get(2).velocity);
-  m.handle(0, 57, 63);
+  m.handle(57, 63);
   TEST_ASSERT_EQUAL(52, m.get(0).note);
   TEST_ASSERT_EQUAL(0, m.get(0).velocity);
   TEST_ASSERT_EQUAL(56, m.get(1).note);
   TEST_ASSERT_EQUAL(63, m.get(1).velocity);
   TEST_ASSERT_EQUAL(57, m.get(2).note);
   TEST_ASSERT_EQUAL(63, m.get(2).velocity);
-  m.handle(0, 58, 63);
+  m.handle(58, 63);
   TEST_ASSERT_EQUAL(58, m.get(0).note);
   TEST_ASSERT_EQUAL(63, m.get(0).velocity);
   TEST_ASSERT_EQUAL(56, m.get(1).note);
@@ -254,7 +247,6 @@ void process() {
   RUN_TEST(test_static_linked_list_remove);
   RUN_TEST(test_static_linked_list_mutate_elements);
   RUN_TEST(test_static_linked_list_aggressive);
-  RUN_TEST(test_ignored_channels);
   RUN_TEST(test_one_voice);
   RUN_TEST(test_one_voice_stack);
   RUN_TEST(test_multiple_voices);

@@ -5,22 +5,9 @@
 #include "./types.h"
 #include "./staticlinkedlist.h"
 
-typedef uint8_t Channel;   // 0..<16
-typedef uint8_t Note;      // 0..<128
-typedef uint8_t Velocity;  // 0..<128
-
 struct MidiEvent {
-  // channel channel;
-  Note note;
-  Velocity velocity;
-
-  bool matches(const MidiEvent& other) {
-    return other.note == note /* && other.channel == channel */;
-  }
-
-  bool isOn() {
-    return velocity > 0;
-  }
+  uint8_t note;
+  uint8_t velocity;
 };
 
 // A MidiManager tracks the state of pressed keys through
@@ -40,7 +27,6 @@ struct MidiEvent {
 template <size_t MSize, size_t VSize> class MidiManager {
  private:
   typedef size_t Voice;
-  Channel channel_;  // TODO(cjk): figure out multi-channel support
   MidiEvent voices_[VSize];
   StaticLinkedList<Voice, VSize> unassigned_voices_;
   StaticLinkedList<Voice, VSize> assigned_voices_;
@@ -48,7 +34,6 @@ template <size_t MSize, size_t VSize> class MidiManager {
 
  public:
   MidiManager() {
-    channel_ = 0;
     for (Voice v = 0; v < VSize; v++) {
       voices_[v].velocity = 0;
       voices_[v].note = 0;
@@ -56,17 +41,14 @@ template <size_t MSize, size_t VSize> class MidiManager {
     }
   }
 
-  void handle(Channel c, Note n, Velocity v) {
-    if (c != channel_) {
-      return;  // ignore events for other channels
-    }
-    MidiEvent e = { n, v };
-    if (e.isOn()) {
+  void handle(uint8_t note, uint8_t velocity) {
+    MidiEvent e = { note & 0x7F, velocity & 0x7F };
+    if (e.velocity > 0) {
       // update the velocity if it's already playing
       Iterator<Voice> i = assigned_voices_.iterator();
       while (i.hasNext()) {
         Voice& v = i.next();
-        if (voices_[v].matches(e)) {
+        if (voices_[v].note == e.note) {
           voices_[v].velocity = e.velocity;
           return;
         }
@@ -75,7 +57,7 @@ template <size_t MSize, size_t VSize> class MidiManager {
       Iterator<MidiEvent> ni = pending_notes_.iterator();
       while (ni.hasNext()) {
         MidiEvent& n = ni.next();
-        if (n.matches(e)) {
+        if (n.note == e.note) {
           n.velocity = e.velocity;
           return;
         }
@@ -100,7 +82,7 @@ template <size_t MSize, size_t VSize> class MidiManager {
     size_t i = 0;
     while (ni.hasNext()) {
       MidiEvent& n = ni.next();
-      if (n.matches(e)) {
+      if (n.note == e.note) {
         n.velocity = 0;
         pending_notes_.removeAt(i);
         return;
@@ -112,7 +94,7 @@ template <size_t MSize, size_t VSize> class MidiManager {
     i = 0;
     while (vi.hasNext()) {
       Voice v = vi.next();
-      if (!voices_[v].matches(e)) {
+      if (voices_[v].note != e.note) {
         i++;
         continue;
       }
