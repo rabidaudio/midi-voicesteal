@@ -1,4 +1,5 @@
 // Copyright 2021 Charles Julian Knight
+// https://github.com/rabidaudio/midi-voicesteal
 #ifndef LIB_MIDIMANAGER_TYPES_H_
 #define LIB_MIDIMANAGER_TYPES_H_
 
